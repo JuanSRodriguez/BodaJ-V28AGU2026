@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Colección de RSVPs: permitir lectura y escritura sin autenticación
+    match /rsvps/{rsvpId} {
+      allow read: if true;
+      allow create: if true;
+      // No permitir update ni delete para proteger los datos
+      allow update, delete: if false;
+    }
+
+    // Colección de canciones sugeridas: permitir lectura y creación sin autenticación
+    match /songs/{songId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // Bloquear todo lo demás por defecto
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
