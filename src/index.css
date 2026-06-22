@@ -33,6 +33,13 @@
   scrollbar-width: none;
 }
 
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+  position: relative;
+}
+
 :root {
   --card-h: min(448px, 78vh);
   --card-w: calc(var(--card-h) * 5 / 7);

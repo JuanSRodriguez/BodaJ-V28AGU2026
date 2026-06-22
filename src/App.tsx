@@ -966,13 +966,23 @@ const MusicPlayer = ({ autoPlayTrigger }: { autoPlayTrigger?: boolean }) => {
     }
   };
 
+  // Unlock audio on first user interaction and autoplay when triggered
   useEffect(() => {
-    if (autoPlayTrigger && audioRef.current && !isPlaying) {
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch(err => {
-        console.log("Autoplay blocked or failed:", err);
-      });
+    if (autoPlayTrigger && audioRef.current) {
+      const audio = audioRef.current;
+      const tryPlay = () => {
+        audio.play().then(() => {
+          setIsPlaying(true);
+        }).catch(err => {
+          console.log("Autoplay blocked or failed:", err);
+        });
+      };
+      // If audio is ready, play immediately; otherwise wait for canplay
+      if (audio.readyState >= 2) {
+        tryPlay();
+      } else {
+        audio.addEventListener('canplay', tryPlay, { once: true });
+      }
     }
   }, [autoPlayTrigger]);
 
@@ -1701,7 +1711,7 @@ const Hero = () => {
   return (
     <section
       id="welcome"
-      className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 shadow-[0_8px_30px_rgba(0,0,0,0.06)] flex flex-col justify-between items-center text-center px-6 pt-12 pb-10 overflow-hidden mx-auto bg-transparent mt-28"
+      className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 shadow-[0_8px_30px_rgba(0,0,0,0.06)] flex flex-col justify-between items-center text-center px-6 pt-12 pb-10 overflow-hidden mx-auto bg-transparent mt-20 sm:mt-28"
       style={{
         backgroundImage: 'url("/images/card_hero_illustration.png")',
         backgroundSize: 'cover',
@@ -1810,6 +1820,16 @@ const InvitationEnvelope = ({ onOpen, onStartMusic, guestName, onNameSubmit }: {
     setMatchedGuests([]);
     setLocalName(selectedGuest);
     setErrorMsg('');
+
+    // Unlock audio context synchronously within user gesture so mobile browsers allow autoplay
+    try {
+      const unlockAudio = new Audio('/images/jaunvale (online-audio-converter.com) (1).mp3');
+      unlockAudio.volume = 0;
+      unlockAudio.play().then(() => {
+        unlockAudio.pause();
+        unlockAudio.src = '';
+      }).catch(() => {});
+    } catch (_) {}
 
     // Simulate database check / roulette animation
     setTimeout(() => {
