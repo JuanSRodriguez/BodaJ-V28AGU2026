@@ -24,7 +24,8 @@ import {
   Home,
   Sparkles,
   Play,
-  Pause
+  Pause,
+  ExternalLink
 } from 'lucide-react';
 import { allGuests, familyGroups } from './constants/guests';
 import { db } from './firebase';
@@ -33,6 +34,127 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'fire
 // --- Helpers for Name Normalization and Matching ---
 const globalNormalizeName = (str: string) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+};
+
+const getEquivalents = (word: string): string[] => {
+  const normalized = word.toLowerCase().trim();
+  if (!normalized) return [];
+  const list = [normalized];
+  
+  const mappings: Record<string, string[]> = {
+    // Daniel / Daniela -> Dani
+    'daniel': ['dani'],
+    'daniela': ['dani'],
+    'dani': ['daniel', 'daniela'],
+    
+    // Sebastián -> Sebas / Seba
+    'sebastian': ['sebas', 'seba'],
+    'sebas': ['sebastian'],
+    'seba': ['sebastian'],
+    
+    // Felipe -> Pipe
+    'felipe': ['pipe'],
+    'pipe': ['felipe'],
+    
+    // Gabriela / Gabriel -> Gaby
+    'gabriela': ['gaby'],
+    'gabriel': ['gaby'],
+    'gaby': ['gabriela', 'gabriel'],
+    
+    // Natalia -> Nata
+    'natalia': ['nata'],
+    'nata': ['natalia'],
+    
+    // Alejandro / Alejandra -> Ale / Alex
+    'alejandra': ['ale', 'alex'],
+    'alejandro': ['ale', 'alex'],
+    'alex': ['alejandro', 'alejandra', 'ale'],
+    'ale': ['alejandra', 'alejandro', 'alex'],
+    
+    // Camila / Camilo -> Cami
+    'camila': ['cami'],
+    'camilo': ['cami'],
+    'cami': ['camila', 'camilo'],
+    
+    // Santiago -> Santi
+    'santiago': ['santi'],
+    'santi': ['santiago'],
+    
+    // Sofía -> Sofi
+    'sofia': ['sofi'],
+    'sofi': ['sofia'],
+    
+    // Antonia / Antonio / Antonella -> Anto
+    'antonia': ['anto'],
+    'antonio': ['anto'],
+    'antonella': ['anto'],
+    'anto': ['antonia', 'antonio', 'antonella'],
+    
+    // Mireya -> Yeya
+    'mireya': ['yeya'],
+    'yeya': ['mireya'],
+    
+    // Blanca -> Blanquita
+    'blanca': ['blanquita'],
+    'blanquita': ['blanca'],
+    
+    // Olga -> Olguita
+    'olga': ['olguita'],
+    'olguita': ['olga'],
+    
+    // Carlos -> Charlie
+    'carlos': ['charlie'],
+    'charlie': ['carlos'],
+    
+    // Nicolás -> Nico
+    'nicolas': ['nico'],
+    'nico': ['nicolas'],
+    
+    // Eduardo -> Lalo
+    'eduardo': ['lalo'],
+    'lalo': ['eduardo'],
+    
+    // Fernando / Fernanda -> Fer
+    'fernando': ['fer'],
+    'fernanda': ['fer'],
+    'fer': ['fernando', 'fernanda'],
+    
+    // Liliana / Lilia -> Lili
+    'liliana': ['lili'],
+    'lilia': ['lili'],
+    'lili': ['liliana', 'lilia'],
+    
+    // Valeria / Valentina -> Vale
+    'valeria': ['vale'],
+    'valentina': ['vale'],
+    'vale': ['valeria', 'valentina'],
+    
+    // Gustavo -> Tavo
+    'gustavo': ['tavo'],
+    'tavo': ['gustavo'],
+    
+    // José -> Pepe
+    'jose': ['pepe'],
+    'pepe': ['jose'],
+    
+    // Juan Pablo -> Juanpa
+    'juanpa': ['juan pablo'],
+    'juan pablo': ['juanpa'],
+    
+    // Juan Sebastián -> Juanse
+    'juanse': ['juan sebastian'],
+    'juan sebastian': ['juanse'],
+    
+    // Francisco -> Paco / Pancho
+    'francisco': ['paco', 'pancho'],
+    'paco': ['francisco'],
+    'pancho': ['francisco']
+  };
+  
+  if (mappings[normalized]) {
+    list.push(...mappings[normalized]);
+  }
+  return list;
 };
 
 const getFamilyDisplayName = (guestName: string): string => {
@@ -1171,7 +1293,7 @@ const RSVPModal = ({ isOpen, onClose, guestName }: { isOpen: boolean, onClose: (
             attending: String(payload.attending),
             familyGroup: payload.familyGroup,
             submittedBy: payload.submittedBy,
-            phone: fullPhone,
+            phone: fullPhone.replace('+', ''), // Remove the "+" sign to prevent Google Sheets from parsing it as a formula
           });
           fetch(`${WEBHOOK_URL}?${params.toString()}`, {
             method: 'GET',
@@ -1201,9 +1323,9 @@ const RSVPModal = ({ isOpen, onClose, guestName }: { isOpen: boolean, onClose: (
             initial={{ opacity: 0, scale: 0.9, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            className="bg-brand-cream w-full max-w-xl rounded-[3rem] shadow-2xl p-8 md:p-12 relative overflow-hidden"
+            className="bg-brand-cream w-full max-w-xl rounded-[2rem] sm:rounded-[3rem] shadow-2xl p-6 sm:p-8 md:p-12 relative overflow-hidden"
           >
-            <button onClick={onClose} className="absolute top-8 right-8 text-brand-sage/40 hover:text-brand-sage transition-colors">
+            <button onClick={onClose} className="absolute top-4 right-4 sm:top-8 sm:right-8 text-brand-sage/40 hover:text-brand-sage transition-colors">
               <X size={28} />
             </button>
 
@@ -1340,7 +1462,7 @@ const RSVPModal = ({ isOpen, onClose, guestName }: { isOpen: boolean, onClose: (
                             <input
                               type="tel"
                               value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
+                              onChange={(e) => setPhone(e.target.value.replace(/[^0-9\s-]/g, ''))} // Sanitize to allow only numbers, spaces, and hyphens
                               placeholder="300 123 4567"
                               required
                               className="flex-1 bg-brand-charcoal/5 border border-brand-sage/10 rounded-2xl px-5 py-4 text-brand-charcoal placeholder:text-brand-charcoal/25 focus:outline-none focus:ring-2 focus:ring-brand-sage/20 transition-all font-sans text-sm"
@@ -1468,9 +1590,9 @@ const SongModal = ({ isOpen, onClose, guestName }: { isOpen: boolean, onClose: (
             initial={{ opacity: 0, scale: 0.9, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            className="bg-brand-cream w-full max-w-md rounded-[3rem] shadow-2xl p-8 md:p-12 relative overflow-hidden"
+            className="bg-brand-cream w-full max-w-md rounded-[2rem] sm:rounded-[3rem] shadow-2xl p-6 sm:p-8 md:p-12 relative overflow-hidden"
           >
-            <button onClick={onClose} className="absolute top-8 right-8 text-brand-sage/40 hover:text-brand-sage transition-colors">
+            <button onClick={onClose} className="absolute top-4 right-4 sm:top-8 sm:right-8 text-brand-sage/40 hover:text-brand-sage transition-colors">
               <X size={28} />
             </button>
 
@@ -1673,7 +1795,13 @@ const InvitationEnvelope = ({ onOpen, onStartMusic, guestName, onNameSubmit }: {
     if (inputWords.length === 0) return false;
 
     return inputWords.every(iw => {
-      return guestWords.some(gw => gw === iw || gw.startsWith(iw));
+      const iwEquivalents = getEquivalents(iw);
+      return guestWords.some(gw => {
+        const gwEquivalents = getEquivalents(gw);
+        return iwEquivalents.some(ie => {
+          return gwEquivalents.some(ge => ge === ie || ge.startsWith(ie) || ie.startsWith(ge));
+        });
+      });
     });
   };
 
@@ -2517,17 +2645,22 @@ const InvitationEnvelope = ({ onOpen, onStartMusic, guestName, onNameSubmit }: {
 };
 
 // --- Photo Carousel Component ---
+const carouselImages = [
+  "/images/carousel_1.jpg",
+  "/images/carousel_2.jpg",
+  "/images/carousel_3.jpg",
+  "/images/carousel_4.jpg",
+  "/images/carousel_5.jpg",
+  "/images/carousel_6.jpg",
+  "/images/carousel_7.jpg",
+  "/images/carousel_8.jpg",
+  "/images/carousel_9.jpg",
+  "/images/carousel_10.jpg",
+  "/images/carousel_11.jpg",
+  "/images/carousel_12.jpg"
+];
 
 const PhotoCarousel = () => {
-  const carouselImages = [
-    "/images/1.jpeg",
-    "/images/2.jpeg",
-    "/images/3.jpeg",
-    "/images/4.jpeg",
-    "/images/5.jpeg",
-    "/images/6.jpeg",
-    "/images/7.jpeg"
-  ];
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -2546,80 +2679,156 @@ const PhotoCarousel = () => {
   };
 
   return (
-    <section className="relative h-[65vh] min-h-[480px] bg-transparent overflow-hidden">
-      {/* Top Torn Edge */}
-      <div className="absolute top-0 left-0 w-full h-12 z-20 pointer-events-none">
-        <img
-          src="/images/torn-edge.png"
-          className="w-full h-full object-cover"
-          alt=""
-          style={{ filter: 'brightness(0) saturate(100%) invert(98%) sepia(5%) saturate(302%) hue-rotate(346deg) brightness(101%) contrast(97%)' }}
-        />
-      </div>
-
-      {/* Carousel Container */}
-      <div className="absolute inset-0 z-0 w-full h-full">
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.2, ease: "easeInOut" }}
-            className="absolute inset-0 w-full h-full"
-          >
-            <img
-              src={carouselImages[index]}
-              alt="Moment"
-              className="w-full h-full object-cover brightness-[0.85] contrast-[1.02]"
-            />
-            <div className="absolute inset-0 bg-black/10" />
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Navigation Arrows */}
-      <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 z-10 flex justify-between items-center pointer-events-none">
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={handlePrev}
-          className="pointer-events-auto w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
-        >
-          <ChevronLeft size={24} strokeWidth={1.5} />
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={handleNext}
-          className="pointer-events-auto w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
-        >
-          <ChevronRight size={24} strokeWidth={1.5} />
-        </motion.button>
-      </div>
-
-      {/* Indicators / Progress bar */}
-      <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center gap-2.5 pointer-events-none">
-        {carouselImages.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setIndex(idx)}
-            className={`pointer-events-auto w-2 h-2 rounded-full transition-all duration-500 cursor-pointer ${idx === index ? 'bg-white scale-125 w-6' : 'bg-white/40'
-              }`}
+    <section className="py-6 bg-transparent px-6 relative overflow-hidden">
+      {/* Carousel Card Container (Phone size on PC, full responsive on mobile) */}
+      <div className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white">
+        
+        {/* Top Torn Edge */}
+        <div className="absolute top-0 left-0 w-full h-8 z-20 pointer-events-none">
+          <img
+            src="/images/torn-edge.png"
+            className="w-full h-full object-cover"
+            alt=""
+            style={{ filter: 'brightness(0) saturate(100%) invert(98%) sepia(5%) saturate(302%) hue-rotate(346deg) brightness(101%) contrast(97%)' }}
           />
-        ))}
-      </div>
+        </div>
 
-      {/* Bottom Torn Edge */}
-      <div className="absolute -bottom-1 left-0 w-full h-12 z-20 pointer-events-none rotate-180">
-        <img
-          src="/images/torn-edge.png"
-          className="w-full h-full object-cover"
-          alt=""
-          style={{ filter: 'brightness(0) saturate(100%) invert(98%) sepia(5%) saturate(302%) hue-rotate(346deg) brightness(101%) contrast(97%)' }}
-        />
+        {/* Carousel Container */}
+        <div className="absolute inset-0 z-0 w-full h-full bg-brand-charcoal">
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2, ease: "easeInOut" }}
+              className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden"
+            >
+              {/* Blurred background copy */}
+              <img
+                src={carouselImages[index]}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-35 pointer-events-none brightness-75"
+              />
+              
+              {/* Sharp, uncropped foreground image */}
+              <img
+                src={carouselImages[index]}
+                alt="Moment"
+                className="w-full h-full object-contain relative z-10 brightness-[0.9] contrast-[1.02]"
+              />
+              
+              {/* Dark subtle overlay for depth */}
+              <div className="absolute inset-0 bg-black/5 z-20 pointer-events-none" />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Navigation Arrows */}
+        <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 z-10 flex justify-between items-center pointer-events-none">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handlePrev}
+            className="pointer-events-auto w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
+          >
+            <ChevronLeft size={18} strokeWidth={1.5} />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleNext}
+            className="pointer-events-auto w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
+          >
+            <ChevronRight size={18} strokeWidth={1.5} />
+          </motion.button>
+        </div>
+
+        {/* Indicators / Progress bar */}
+        <div className="absolute bottom-8 left-0 right-0 z-10 flex justify-center gap-1.5 pointer-events-none">
+          {carouselImages.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setIndex(idx)}
+              className={`pointer-events-auto w-1.5 h-1.5 rounded-full transition-all duration-500 cursor-pointer ${idx === index ? 'bg-white scale-125 w-4' : 'bg-white/40'
+                }`}
+            />
+          ))}
+        </div>
+
+        {/* Bottom Torn Edge */}
+        <div className="absolute -bottom-1 left-0 w-full h-8 z-20 pointer-events-none rotate-180">
+          <img
+            src="/images/torn-edge.png"
+            className="w-full h-full object-cover"
+            alt=""
+            style={{ filter: 'brightness(0) saturate(100%) invert(98%) sepia(5%) saturate(302%) hue-rotate(346deg) brightness(101%) contrast(97%)' }}
+          />
+        </div>
       </div>
     </section>
+  );
+};
+
+// --- Dress Code Modal Component ---
+const DressCodeModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-brand-charcoal/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          onClick={onClose}
+        >
+          {/* Close Button */}
+          <motion.button
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2 z-[110]"
+            onClick={onClose}
+          >
+            <X size={32} strokeWidth={1.5} />
+          </motion.button>
+
+          {/* Modal Card Container */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="relative max-w-[550px] w-full flex flex-col items-center gap-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative w-full max-h-[75vh] aspect-[5/7] rounded-[2rem] md:rounded-[3rem] border border-brand-gold/30 overflow-hidden shadow-2xl bg-white">
+              <img
+                src="/images/codigo_vestimenta.png"
+                alt="Código de Vestimenta Completo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Pinterest Inspiration Link */}
+            <motion.a
+              href="https://pin.it/3yICblsqK"
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-white/95 backdrop-blur-sm text-brand-charcoal border border-brand-gold/20 shadow-lg hover:shadow-xl hover:bg-white hover:border-brand-gold/40 transition-all duration-300 group"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#E60023] flex-shrink-0" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z" />
+              </svg>
+              <span className="text-[11px] tracking-[0.15em] uppercase font-bold">Inspiración en Pinterest</span>
+              <ExternalLink size={14} className="text-brand-sage/50 group-hover:text-brand-sage transition-colors" />
+            </motion.a>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
@@ -2628,6 +2837,7 @@ const PhotoCarousel = () => {
 export default function App() {
   const [isRSVPOpen, setIsRSVPOpen] = useState(false);
   const [isSongOpen, setIsSongOpen] = useState(false);
+  const [isDressCodeOpen, setIsDressCodeOpen] = useState(false);
   const [isOpened, setIsOpened] = useState(false);
   const [startMusic, setStartMusic] = useState(false);
   const [guestName, setGuestName] = useState('');
@@ -2659,16 +2869,14 @@ export default function App() {
   }, [isOpened]);
 
   return (
-    <div
-      className="relative min-h-screen font-sans selection:bg-brand-sage/20 overflow-x-hidden"
-      style={{
-        backgroundImage: 'url("/images/card_text_base.png")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
+    <div className="relative min-h-screen font-sans selection:bg-brand-sage/20 overflow-x-hidden">
+      {/* Smooth fixed background for Safari on iOS / iPhone */}
+      <div 
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url("/images/card_text_base.png")',
+        }}
+      />
       <AnimatePresence>
         {!isOpened && (
           <InvitationEnvelope
@@ -2822,14 +3030,14 @@ export default function App() {
           <div className="absolute top-10 left-1/4 w-64 h-64 rounded-full bg-brand-gold/5 blur-3xl pointer-events-none" />
           <div className="absolute bottom-20 right-1/4 w-64 h-64 rounded-full bg-brand-sage/5 blur-3xl pointer-events-none" />
 
-          <div className="max-w-2xl mx-auto px-6 relative z-10">
+          <div className="max-w-sm mx-auto px-6 relative z-10">
             {/* Hacienda Video Card with Location Info */}
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 1 }}
-              className="relative w-full max-w-[430px] aspect-[5/7] md:my-10 md:rounded-[3rem] md:shadow-2xl md:border md:border-brand-gold/30 overflow-hidden mx-auto bg-white"
+              className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white"
             >
               {/* Background Image */}
               <img
@@ -2841,21 +3049,21 @@ export default function App() {
               {/* Content Overlay */}
               <div className="absolute inset-0 z-10 flex flex-col">
                 {/* Top Half: Empty space to let the doors show clearly */}
-                <div className="h-[46%] md:h-[50%]" />
+                <div className="h-[42%] md:h-[46%]" />
 
                 {/* Bottom Half: Info overlay on the marble background */}
-                <div className="flex-1 p-6 md:p-8 flex flex-col justify-center items-center text-center space-y-4 md:space-y-6">
+                <div className="flex-1 p-4 md:p-6 flex flex-col justify-center items-center text-center space-y-3 md:space-y-4">
                   {/* Title */}
                   <div className="space-y-1">
                     <span className="text-[10px] tracking-[0.25em] uppercase text-brand-sage font-bold block">Ubicación</span>
-                    <h3 className="font-serif text-brand-charcoal text-3xl md:text-4xl italic font-bold">Salón Garden</h3>
-                    <p className="text-brand-charcoal/70 font-light text-sm italic">Hacienda La Victoria, Subachoque</p>
+                    <h3 className="font-serif text-brand-charcoal text-2.5xl md:text-3xl italic font-bold">Salón Garden</h3>
+                    <p className="text-brand-charcoal/70 font-light text-xs italic">Hacienda La Victoria, Subachoque</p>
                   </div>
 
-                  <div className="w-16 h-[1px] bg-brand-gold/50 mx-auto" />
+                  <div className="w-12 h-[1px] bg-brand-gold/50 mx-auto" />
 
                   {/* Event Description */}
-                  <p className="text-[10px] tracking-[0.18em] uppercase font-black text-brand-sage leading-relaxed">
+                  <p className="text-[9px] tracking-[0.18em] uppercase font-black text-brand-sage leading-relaxed">
                     Ceremonia, Recepción y Fiesta
                   </p>
 
@@ -2867,7 +3075,7 @@ export default function App() {
                       rel="noopener noreferrer"
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
-                      className="w-[220px] py-3.5 bg-brand-sage hover:bg-brand-sage/95 border border-brand-gold/45 text-white text-[10px] tracking-[0.25em] font-black uppercase rounded-full shadow-md flex justify-center items-center gap-2 cursor-pointer transition-all duration-300"
+                      className="w-[180px] py-3 bg-brand-sage hover:bg-brand-sage/95 border border-brand-gold/45 text-white text-[9px] tracking-[0.2em] font-black uppercase rounded-full shadow-md flex justify-center items-center gap-2 cursor-pointer transition-all duration-300"
                     >
                       Cómo llegar
                     </motion.a>
@@ -2878,85 +3086,89 @@ export default function App() {
           </div>
 
           {/* Botanical divider */}
-          <div className="flex items-center justify-center gap-4 mt-16 mb-4 opacity-25 text-brand-sage">
-            <svg width="80" height="20" viewBox="0 0 80 20" fill="none" stroke="currentColor" strokeWidth="1">
+          <motion.div
+            className="flex items-center justify-center gap-4 mt-16 mb-4 opacity-25 text-brand-sage"
+            initial={{ opacity: 0, scale: 0.85 }}
+            whileInView={{ opacity: 0.25, scale: 1 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.svg
+              width="80" height="20" viewBox="0 0 80 20" fill="none" stroke="currentColor" strokeWidth="1"
+              initial={{ x: -20, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.9, delay: 0.1 }}
+            >
               <path d="M0,10 C20,10 20,2 40,2 C60,2 60,18 80,18" />
               <path d="M20,8 C20,4 26,2 28,6" />
               <path d="M55,14 C55,18 62,18 62,14" />
-            </svg>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-brand-gold/60">
+            </motion.svg>
+            <motion.svg
+              width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-brand-gold/60"
+              initial={{ scale: 0, rotate: -45 }}
+              whileInView={{ scale: 1, rotate: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.25, type: 'spring', stiffness: 200 }}
+            >
               <path d="M10,0 L12,7 L19,8 L14,13 L15,20 L10,17 L5,20 L6,13 L1,8 L8,7 Z" fill="currentColor" opacity="0.5" />
-            </svg>
-            <svg width="80" height="20" viewBox="0 0 80 20" fill="none" stroke="currentColor" strokeWidth="1" className="scale-x-[-1]">
+            </motion.svg>
+            <motion.svg
+              width="80" height="20" viewBox="0 0 80 20" fill="none" stroke="currentColor" strokeWidth="1" className="scale-x-[-1]"
+              initial={{ x: 20, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.9, delay: 0.1 }}
+            >
               <path d="M0,10 C20,10 20,2 40,2 C60,2 60,18 80,18" />
               <path d="M20,8 C20,4 26,2 28,6" />
               <path d="M55,14 C55,18 62,18 62,14" />
-            </svg>
-          </div>
+            </motion.svg>
+          </motion.div>
 
           {/* Dress Code Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="max-w-sm mx-auto px-6 mt-8"
-          >
-            <div className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white">
-              {/* Background Image */}
+          <div className="max-w-sm mx-auto px-6 mt-8 relative z-10 flex flex-col items-center gap-5">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1 }}
+              onClick={() => setIsDressCodeOpen(true)}
+              className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white cursor-pointer group"
+            >
+              {/* Image */}
               <img
-                src="/images/colores_reservados_bg.png"
-                alt="Colores Reservados Fondo"
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                src="/images/codigo_vestimenta.png"
+                alt="Código de Vestimenta"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-
-              {/* Content Overlay */}
-              <div className="absolute inset-0 z-10 p-6 flex flex-col justify-center items-center text-center space-y-4">
-                <div className="flex items-center justify-center gap-4 text-brand-sage opacity-90 py-1">
-                  {/* Dress Icon */}
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-                    <path d="M9 3v3M15 3v3" />
-                    <path d="M9 6c.8 1 1.5 1.2 3 .5c1.5.7 2.2.5 3-.5" />
-                    <path d="M9 6c-.5 2 0 4.5 1.5 5.5m4.5-5.5c.5 2 0 4.5-1.5 5.5" />
-                    <path d="M10.5 11.5c-2 3-3.5 6-3.5 9c0 .5.5 1 1 1h8c.5 0 1-.5 1-1c0-3-1.5-6-3-9" />
-                  </svg>
-
-                  {/* Suit Icon */}
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-                    <path d="M5 5.5C5 4.7 5.7 4 6.5 4h11c.8 0 1.5.7 1.5 1.5v15c0 .3-.2.5-.5.5h-13c-.3 0-.5-.2-.5-.5v-15z" />
-                    <path d="M8.5 4L12 9.5L15.5 4" />
-                    <path d="M8.5 4l1 3.5M15.5 4l-1 3.5" />
-                    <path d="M10.2 4l1.8 2.2L13.8 4" />
-                    <path d="M12 6.2v4.8l-1 1.5l1 1l1-1l-1-1.5" />
-                    <path d="M12 13.5v7" />
-                  </svg>
-                </div>
-
-                <div className="space-y-0.5">
-                  <p className="text-[9px] tracking-[0.4em] uppercase font-bold text-brand-sage">Código de Vestimenta</p>
-                  <h3 className="font-serif text-3.5xl text-brand-charcoal italic font-medium">Formal</h3>
-                </div>
-
-                <div className="w-8 h-[1px] bg-brand-gold/40" />
-
-                <div className="space-y-2">
-                  <p className="text-[10px] tracking-[0.3em] font-extrabold text-brand-charcoal/80 uppercase">Colores Reservados</p>
-                  <p className="text-brand-charcoal/90 font-light text-[13px] leading-relaxed italic max-w-[240px]">
-                    Agradecemos no vestir blanco, beige o tonos de verde.
-                  </p>
-                </div>
-
-                <div className="flex justify-center gap-3 pt-1">
-                  {['#FFFFFF', '#F5F5DC', '#8c9c8a'].map((color, i) => (
-                    <div
-                      key={i}
-                      className="relative w-8 h-8 rounded-full shadow-md border border-gray-200/50 flex items-center justify-center transition-transform hover:scale-105"
-                      style={{ background: color }}
-                    />
-                  ))}
+              
+              {/* Subtle hover overlay indicator */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 flex items-center justify-center">
+                <div className="opacity-0 group-hover:opacity-100 bg-white/90 backdrop-blur-sm text-brand-charcoal text-[9px] tracking-widest uppercase font-bold px-4 py-2.5 rounded-full shadow-md transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                  Ver en detalle
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+
+            {/* Pinterest Inspiration Link */}
+            <motion.a
+              href="https://pin.it/3yICblsqK"
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-sm text-brand-charcoal border border-brand-gold/20 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_6px_25px_rgba(0,0,0,0.08)] hover:bg-white hover:border-brand-gold/40 transition-all duration-300 group"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#E60023] flex-shrink-0" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z" />
+              </svg>
+              <span className="text-[10px] tracking-[0.15em] uppercase font-bold">Inspiración</span>
+              <ExternalLink size={13} className="text-brand-sage/40 group-hover:text-brand-sage/70 transition-colors" />
+            </motion.a>
+          </div>
 
         </section>
 
@@ -2965,9 +3177,27 @@ export default function App() {
 
         {/* Photo Carousel Header */}
         <section className="bg-transparent text-center pt-12 pb-8 space-y-3">
-          <span className="text-[10px] tracking-[0.5em] uppercase font-black text-brand-sage/60">Recuerdos</span>
-          <h3 className="font-serif text-4xl text-brand-charcoal italic">Nuestra historia en fotos</h3>
-          <div className="w-12 h-[1px] bg-brand-gold/30 mx-auto mt-4" />
+          <motion.span
+            initial={{ opacity: 0, letterSpacing: '0.2em' }}
+            whileInView={{ opacity: 0.6, letterSpacing: '0.5em' }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[10px] tracking-[0.5em] uppercase font-black text-brand-sage/60 block"
+          >Recuerdos</motion.span>
+          <motion.h3
+            initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 1.1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="font-serif text-4xl text-brand-charcoal italic"
+          >Nuestra historia en fotos</motion.h3>
+          <motion.div
+            initial={{ scaleX: 0, opacity: 0 }}
+            whileInView={{ scaleX: 1, opacity: 1 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.8, delay: 0.35 }}
+            className="w-12 h-[1px] bg-brand-gold/30 mx-auto mt-4 origin-center"
+          />
         </section>
 
         {/* Photo Carousel Section */}
@@ -2976,27 +3206,53 @@ export default function App() {
         {/* Social & Details Section */}
         <section className="py-20 bg-transparent px-6 text-center space-y-20">
           {/* Instagram */}
-          <div className="max-w-md mx-auto space-y-6">
-            <Camera className="mx-auto text-brand-sage/80" size={28} strokeWidth={1} />
+          <motion.div
+            className="max-w-md mx-auto space-y-6"
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.div
+              initial={{ scale: 0, rotate: -15 }}
+              whileInView={{ scale: 1, rotate: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.1, type: 'spring', stiffness: 180, damping: 14 }}
+            >
+              <Camera className="mx-auto text-brand-sage/80" size={28} strokeWidth={1} />
+            </motion.div>
             <h3 className="font-serif text-4xl text-brand-charcoal italic">Instagram</h3>
             <p className="text-brand-charcoal/65 font-light text-xs max-w-xs mx-auto leading-relaxed">
-              No nos queremos perder de nada. Por favor, síguenos y etiqueta la cuenta de la boda para que podamos revivir cada momento.
+              No nos queremos perder de nada. Por favor, comparte tus fotos y videos usando nuestro hashtag para que podamos revivir cada momento.
             </p>
             <motion.a
-              href="https://instagram.com/bodajuanyvale"
+              href="https://www.instagram.com/explore/tags/bodajuanyvale"
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="inline-block px-10 py-3.5 bg-brand-sage text-white text-[10px] tracking-[0.3em] font-black uppercase rounded-full shadow-lg hover:shadow-brand-sage/25 transition-all"
             >
-              @bodajuanyvale
+              #bodajuanyvale
             </motion.a>
-          </div>
+          </motion.div>
 
           {/* Playlist */}
-          <div className="max-w-md mx-auto space-y-6">
-            <Music className="mx-auto text-brand-sage/80" size={28} strokeWidth={1} />
+          <motion.div
+            className="max-w-md mx-auto space-y-6"
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.div
+              initial={{ scale: 0, rotate: 15 }}
+              whileInView={{ scale: 1, rotate: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.1, type: 'spring', stiffness: 180, damping: 14 }}
+            >
+              <Music className="mx-auto text-brand-sage/80" size={28} strokeWidth={1} />
+            </motion.div>
             <h3 className="font-serif text-4xl text-brand-charcoal italic">Playlist</h3>
             <p className="text-brand-charcoal/65 font-light text-xs max-w-xs mx-auto leading-relaxed">
               La fiesta la haces tú. Ayúdanos con la música recomendándonos una canción que no puede faltar.
@@ -3009,15 +3265,15 @@ export default function App() {
             >
               Añadir Canción
             </motion.button>
-          </div>
+          </motion.div>
         </section>
 
         {/* Gifts Section */}
         <section id="gifts" className="py-16 bg-transparent px-6 relative overflow-hidden text-center">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            initial={{ opacity: 0, y: 50, rotate: -1 }}
+            whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white"
           >
@@ -3054,12 +3310,19 @@ export default function App() {
         <section className="py-20 bg-transparent text-center space-y-8">
           <div className="max-w-md mx-auto px-6">
             <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1 }}
+              initial={{ opacity: 0, y: 25, filter: 'blur(6px)' }}
+              whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 1.3, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="flex items-center justify-center gap-3 mb-4 opacity-30 text-brand-sage">
+              <motion.div
+                className="flex items-center justify-center gap-3 mb-4 opacity-30 text-brand-sage"
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                style={{ originX: 0.5 }}
+              >
                 <svg width="30" height="14" viewBox="0 0 30 14" fill="none" stroke="currentColor" strokeWidth="0.8">
                   <path d="M0,7 C5,2 10,12 15,7 C20,2 25,12 30,7" />
                 </svg>
@@ -3067,18 +3330,30 @@ export default function App() {
                 <svg width="30" height="14" viewBox="0 0 30 14" fill="none" stroke="currentColor" strokeWidth="0.8" className="scale-x-[-1]">
                   <path d="M0,7 C5,2 10,12 15,7 C20,2 25,12 30,7" />
                 </svg>
-              </div>
+              </motion.div>
               <p className="text-brand-charcoal/60 leading-relaxed font-light text-base italic px-4">
                 "Cada uno de ustedes ha sido parte fundamental de nuestra historia. Queremos agradecerles de corazón por su amor y apoyo constante."
               </p>
-              <div className="flex justify-center items-center gap-4 text-brand-sage/70 mt-5">
+              <motion.div
+                className="flex justify-center items-center gap-4 text-brand-sage/70 mt-5"
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.9, delay: 0.4 }}
+              >
                 <div className="h-[1px] w-12 bg-brand-sage/20" />
                 <span className="font-serif text-2xl italic">Juan &amp; Vale</span>
                 <div className="h-[1px] w-12 bg-brand-sage/20" />
-              </div>
+              </motion.div>
             </motion.div>
 
-            <div className="relative pt-10 max-w-xs mx-auto">
+            <motion.div
+              className="relative pt-10 max-w-xs mx-auto"
+              initial={{ opacity: 0, scale: 0.93, y: 30 }}
+              whileInView={{ opacity: 1, scale: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 1.2, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            >
               <div className="absolute -inset-4 border border-brand-sage/10 rounded-[2rem] -rotate-2" />
               <div className="absolute -inset-2 border border-brand-gold/8 rounded-[2rem] rotate-1" />
               <img
@@ -3086,16 +3361,16 @@ export default function App() {
                 className="w-full aspect-[4/5] object-cover rounded-[2rem] shadow-xl relative z-10"
                 alt="Moment"
               />
-            </div>
+            </motion.div>
           </div>
         </section>
 
         {/* RSVP Section */}
         <section id="rsvp" className="pt-20 pb-36 bg-transparent px-6 relative overflow-hidden text-center">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            initial={{ opacity: 0, y: 50, rotate: 1 }}
+            whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white"
           >
@@ -3147,6 +3422,7 @@ export default function App() {
           </motion.div>
           <RSVPModal isOpen={isRSVPOpen} onClose={() => setIsRSVPOpen(false)} guestName={guestName} />
           <SongModal isOpen={isSongOpen} onClose={() => setIsSongOpen(false)} guestName={guestName} />
+          <DressCodeModal isOpen={isDressCodeOpen} onClose={() => setIsDressCodeOpen(false)} />
         </section>
       </main>
 
