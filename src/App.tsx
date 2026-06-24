@@ -2009,7 +2009,7 @@ const InvitationEnvelope = ({ onOpen, onStartMusic, guestName, onNameSubmit }: {
 
   return (
     <div
-      className="fixed inset-0 z-[100] overflow-hidden w-screen h-screen select-none bg-brand-charcoal"
+      className="fixed inset-0 z-[100] overflow-hidden w-full h-full select-none bg-brand-charcoal"
     >
       {/* Background Image */}
       <div
@@ -2106,7 +2106,8 @@ const InvitationEnvelope = ({ onOpen, onStartMusic, guestName, onNameSubmit }: {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ delay: 0.8 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 z-40"
+          className="absolute left-1/2 -translate-x-1/2 z-40"
+          style={{ top: 'calc(50% + var(--card-h) / 2 + 28px)' }}
         >
           <button
             onClick={() => setIsModalOpen(true)}
@@ -2998,11 +2999,20 @@ export default function App() {
   useEffect(() => {
     if (!isOpened) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.height = '100%';
+      document.documentElement.style.height = '100%';
     } else {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.height = '';
+      document.documentElement.style.height = '';
     }
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.height = '';
+      document.documentElement.style.height = '';
     };
   }, [isOpened]);
 
@@ -3026,9 +3036,10 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <Navbar />
-      <ScrollProgressBar />
-      <MusicPlayer autoPlayTrigger={startMusic} />
+      <div style={{ display: isOpened ? 'block' : 'none' }}>
+        <Navbar />
+        <ScrollProgressBar />
+        <MusicPlayer autoPlayTrigger={startMusic} />
 
       <main>
         {/* Hero Welcome Section */}
@@ -3600,6 +3611,7 @@ export default function App() {
           ))}
         </div>
       </motion.footer>
+      </div>
     </div>
   );
 }
