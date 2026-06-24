@@ -216,6 +216,113 @@ const scaleIn = {
   }
 };
 
+// Clip-path curtain reveal (bottom to top)
+const curtainReveal = {
+  hidden: { clipPath: 'inset(100% 0% 0% 0%)', opacity: 0 },
+  visible: {
+    clipPath: 'inset(0% 0% 0% 0%)',
+    opacity: 1,
+    transition: { duration: 1.1, ease: [0.76, 0, 0.24, 1] }
+  }
+};
+
+// 3D perspective card entry
+const perspective3D = {
+  hidden: { opacity: 0, rotateY: 12, rotateX: 4, scale: 0.96, y: 40 },
+  visible: {
+    opacity: 1,
+    rotateY: 0,
+    rotateX: 0,
+    scale: 1,
+    y: 0,
+    transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] }
+  }
+};
+
+// Text line stagger (each line slides in individually)
+const lineStagger = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.18, delayChildren: 0.1 }
+  }
+};
+const lineItem = {
+  hidden: { opacity: 0, y: 22, filter: 'blur(4px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] }
+  }
+};
+
+// Character-by-character split text component
+const SplitText = ({ text, className, charClassName, staggerDelay = 0.04 }: {
+  text: string;
+  className?: string;
+  charClassName?: string;
+  staggerDelay?: number;
+}) => {
+  const chars = text.split('');
+  return (
+    <motion.span
+      className={className}
+      variants={{
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { staggerChildren: staggerDelay, delayChildren: 0.05 } }
+      }}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-60px' }}
+      aria-label={text}
+    >
+      {chars.map((char, i) => (
+        <motion.span
+          key={i}
+          className={charClassName}
+          style={{ display: 'inline-block', whiteSpace: char === ' ' ? 'pre' : 'normal' }}
+          variants={{
+            hidden: { opacity: 0, y: 18, filter: 'blur(6px)', rotateX: -25 },
+            visible: {
+              opacity: 1,
+              y: 0,
+              filter: 'blur(0px)',
+              rotateX: 0,
+              transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] }
+            }
+          }}
+        >
+          {char}
+        </motion.span>
+      ))}
+    </motion.span>
+  );
+};
+
+// Gold scroll-progress bar (fixed, full width at top)
+const ScrollProgressBar = () => {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+  return (
+    <motion.div
+      style={{
+        scaleX,
+        transformOrigin: 'left',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+        background: 'linear-gradient(90deg, #c5a059 0%, #e8c97a 50%, #c5a059 100%)',
+        zIndex: 999,
+        boxShadow: '0 0 8px rgba(197,160,89,0.6)',
+        pointerEvents: 'none',
+      }}
+    />
+  );
+};
+
 // --- Components ---
 
 const Navbar = () => {
@@ -459,14 +566,25 @@ const Gallery = () => {
           </svg>
         </motion.div>
 
-        <div className="mb-12 space-y-4 max-w-xl mx-auto">
-          <h4 className="text-[10px] md:text-xs uppercase tracking-[0.6em] font-black text-brand-sage/40">Nuestra Historia</h4>
-          <h3 className="font-serif italic text-3xl md:text-5xl text-brand-charcoal leading-none">Nuestros Momentos</h3>
-          <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] font-bold text-brand-gold/60 italic">Agosto 28 . 2026</p>
-          <p className="text-sm md:text-base text-brand-charcoal/50 font-light italic leading-relaxed pt-2">
+        <motion.div
+          className="mb-12 space-y-4 max-w-xl mx-auto"
+          variants={lineStagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+        >
+          <motion.h4 variants={lineItem} className="text-[10px] md:text-xs uppercase tracking-[0.6em] font-black text-brand-sage/40">Nuestra Historia</motion.h4>
+          <div style={{ perspective: 800 }}>
+            <SplitText
+              text="Nuestros Momentos"
+              className="font-serif italic text-3xl md:text-5xl text-brand-charcoal leading-none block"
+            />
+          </div>
+          <motion.p variants={lineItem} className="text-[10px] md:text-xs uppercase tracking-[0.4em] font-bold text-brand-gold/60 italic">Agosto 28 . 2026</motion.p>
+          <motion.p variants={lineItem} className="text-sm md:text-base text-brand-charcoal/50 font-light italic leading-relaxed pt-2">
             "Cada instante compartido nos ha traído hasta aquí. Aquí les compartimos un pedacito de nuestra historia a través de nuestros ojos."
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
         {/* Desktop Connection threads linking Novia (left) and Novio (right) to the center (God) */}
         <div className="absolute inset-0 pointer-events-none hidden md:block z-0">
@@ -2735,7 +2853,7 @@ const PhotoCarousel = () => {
               <img
                 src={carouselImages[index]}
                 alt="Moment"
-                className="w-full h-full object-contain relative z-10 brightness-[0.9] contrast-[1.02]"
+                className="w-full h-full object-cover relative z-10 brightness-[0.9] contrast-[1.02]"
               />
               
               {/* Dark subtle overlay for depth */}
@@ -2909,6 +3027,7 @@ export default function App() {
       </AnimatePresence>
 
       <Navbar />
+      <ScrollProgressBar />
       <MusicPlayer autoPlayTrigger={startMusic} />
 
       <main>
@@ -2917,13 +3036,13 @@ export default function App() {
 
         {/* Invitation Message Section */}
         <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+          variants={lineStagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
           className="py-12 px-6 max-w-[430px] mx-auto text-center space-y-4 relative z-10"
         >
-          <div className="flex items-center justify-center gap-3 opacity-30 text-brand-sage">
+          <motion.div variants={lineItem} className="flex items-center justify-center gap-3 opacity-30 text-brand-sage">
             <svg width="24" height="10" viewBox="0 0 24 10" fill="none" stroke="currentColor" strokeWidth="0.8">
               <path d="M0,5 C4,1 8,9 12,5 C16,1 20,9 24,5"/>
             </svg>
@@ -2931,22 +3050,34 @@ export default function App() {
             <svg width="24" height="10" viewBox="0 0 24 10" fill="none" stroke="currentColor" strokeWidth="0.8" className="scale-x-[-1]">
               <path d="M0,5 C4,1 8,9 12,5 C16,1 20,9 24,5"/>
             </svg>
-          </div>
+          </motion.div>
 
           <div className="space-y-4">
             {resolvedGuestName && (
-              <div className="space-y-1">
-                <h3 className="font-serif text-3xl text-brand-charcoal italic font-medium">{resolvedGuestName}</h3>
-                <div className="w-12 h-[1px] bg-brand-gold/25 mx-auto mt-2" />
-              </div>
+              <motion.div variants={lineItem} className="space-y-1">
+                <div style={{ perspective: 600 }}>
+                  <SplitText
+                    text={resolvedGuestName}
+                    className="font-serif text-3xl text-brand-charcoal italic font-medium block"
+                    staggerDelay={0.06}
+                  />
+                </div>
+                <motion.div
+                  className="w-12 h-[1px] bg-brand-gold/25 mx-auto mt-2"
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: 0.6 }}
+                  style={{ originX: 0.5 }}
+                />
+              </motion.div>
             )}
-            
-            <p className="text-brand-charcoal/70 leading-relaxed font-light text-[15px] italic px-4">
+            <motion.p variants={lineItem} className="text-brand-charcoal/70 leading-relaxed font-light text-[15px] italic px-4">
               {isPluralInvitation
-                ? "Tenemos el honor de invitarlos a celebrar nuestra unión matrimonial y compartir con nosotros este día tan especial."
-                : "Tenemos el honor de invitarte a celebrar nuestra unión matrimonial y compartir con nosotros este día tan especial."
+                ? "Nuestra historia da un nuevo paso y no imaginamos hacerlo sin ustedes. Los invitamos a celebrar nuestra boda y acompañarnos en uno de los días más felices de nuestras vidas."
+                : "Nuestra historia da un nuevo paso y no imaginamos hacerlo sin ti. Te invitamos a celebrar nuestra boda y acompañarnos en uno de los días más felices de nuestras vidas."
               }
-            </p>
+            </motion.p>
           </div>
         </motion.section>
 
@@ -3053,10 +3184,11 @@ export default function App() {
           <div className="max-w-sm mx-auto px-6 relative z-10">
             {/* Hacienda Video Card with Location Info */}
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1 }}
+              variants={perspective3D}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-80px' }}
+              style={{ perspective: 1000 }}
               className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white"
             >
               {/* Background Image */}
@@ -3149,10 +3281,11 @@ export default function App() {
           {/* Dress Code Section */}
           <div className="max-w-sm mx-auto px-6 mt-8 relative z-10 flex flex-col items-center gap-5">
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1 }}
+              variants={perspective3D}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-80px' }}
+              style={{ perspective: 1000 }}
               onClick={() => setIsDressCodeOpen(true)}
               className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white cursor-pointer group"
             >
@@ -3204,13 +3337,13 @@ export default function App() {
             transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
             className="text-[10px] tracking-[0.5em] uppercase font-black text-brand-sage/60 block"
           >Recuerdos</motion.span>
-          <motion.h3
-            initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }}
-            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 1.1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="font-serif text-4xl text-brand-charcoal italic"
-          >Nuestra historia en fotos</motion.h3>
+          <div style={{ perspective: 800 }}>
+            <SplitText
+              text="Nuestra historia en fotos"
+              className="font-serif text-4xl text-brand-charcoal italic block"
+              staggerDelay={0.035}
+            />
+          </div>
           <motion.div
             initial={{ scaleX: 0, opacity: 0 }}
             whileInView={{ scaleX: 1, opacity: 1 }}
@@ -3228,23 +3361,23 @@ export default function App() {
           {/* Instagram */}
           <motion.div
             className="max-w-md mx-auto space-y-6"
-            initial={{ opacity: 0, x: -40 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            variants={lineStagger}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
           >
             <motion.div
-              initial={{ scale: 0, rotate: -15 }}
-              whileInView={{ scale: 1, rotate: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.1, type: 'spring', stiffness: 180, damping: 14 }}
+              variants={lineItem}
+              style={{ perspective: 400 }}
             >
               <Camera className="mx-auto text-brand-sage/80" size={28} strokeWidth={1} />
             </motion.div>
-            <h3 className="font-serif text-4xl text-brand-charcoal italic">Instagram</h3>
-            <p className="text-brand-charcoal/65 font-light text-xs max-w-xs mx-auto leading-relaxed">
+            <motion.div variants={lineItem} style={{ perspective: 600 }}>
+              <SplitText text="Instagram" className="font-serif text-4xl text-brand-charcoal italic block" staggerDelay={0.06} />
+            </motion.div>
+            <motion.p variants={lineItem} className="text-brand-charcoal/65 font-light text-xs max-w-xs mx-auto leading-relaxed">
               No nos queremos perder de nada. Por favor, comparte tus fotos y videos usando nuestro hashtag para que podamos revivir cada momento.
-            </p>
+            </motion.p>
             <motion.a
               href="https://www.instagram.com/explore/tags/bodajuanyvale"
               target="_blank"
@@ -3260,23 +3393,23 @@ export default function App() {
           {/* Playlist */}
           <motion.div
             className="max-w-md mx-auto space-y-6"
-            initial={{ opacity: 0, x: 40 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            variants={lineStagger}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
           >
             <motion.div
-              initial={{ scale: 0, rotate: 15 }}
-              whileInView={{ scale: 1, rotate: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: 0.1, type: 'spring', stiffness: 180, damping: 14 }}
+              variants={lineItem}
+              style={{ perspective: 400 }}
             >
               <Music className="mx-auto text-brand-sage/80" size={28} strokeWidth={1} />
             </motion.div>
-            <h3 className="font-serif text-4xl text-brand-charcoal italic">Playlist</h3>
-            <p className="text-brand-charcoal/65 font-light text-xs max-w-xs mx-auto leading-relaxed">
+            <motion.div variants={lineItem} style={{ perspective: 600 }}>
+              <SplitText text="Playlist" className="font-serif text-4xl text-brand-charcoal italic block" staggerDelay={0.08} />
+            </motion.div>
+            <motion.p variants={lineItem} className="text-brand-charcoal/65 font-light text-xs max-w-xs mx-auto leading-relaxed">
               La fiesta la haces tú. Ayúdanos con la música recomendándonos una canción que no puede faltar.
-            </p>
+            </motion.p>
             <motion.button
               onClick={() => setIsSongOpen(true)}
               whileHover={{ scale: 1.05 }}
@@ -3291,10 +3424,11 @@ export default function App() {
         {/* Gifts Section */}
         <section id="gifts" className="py-16 bg-transparent px-6 relative overflow-hidden text-center">
           <motion.div
-            initial={{ opacity: 0, y: 50, rotate: -1 }}
-            whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+            variants={perspective3D}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+            style={{ perspective: 1000 }}
             className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white"
           >
             {/* Background Image */}
@@ -3388,10 +3522,11 @@ export default function App() {
         {/* RSVP Section */}
         <section id="rsvp" className="pt-20 pb-36 bg-transparent px-6 relative overflow-hidden text-center">
           <motion.div
-            initial={{ opacity: 0, y: 50, rotate: 1 }}
-            whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+            variants={perspective3D}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+            style={{ perspective: 1000 }}
             className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.06)] mx-auto bg-white"
           >
             {/* Background Image */}

@@ -53,7 +53,8 @@ export const familyGroups: string[][] = [
   ["Cami Pinilla"],
   ["Natalia Montenegro"],
   ["Yeremy Téllez", "Kevin Mayoral"],
-  ["Joe Arenas"]
+  ["Joe Arenas"],
+  ["Meylin Herrera", "Leonardo Gualdron"]
 ];
 
 export const allGuests: string[] = familyGroups.flat();
