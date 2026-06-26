@@ -264,7 +264,7 @@ const SplitText = ({ text, className, charClassName, staggerDelay = 0.04 }: {
   charClassName?: string;
   staggerDelay?: number;
 }) => {
-  const chars = text.split('');
+  const words = text.split(' ');
   return (
     <motion.span
       className={className}
@@ -277,24 +277,34 @@ const SplitText = ({ text, className, charClassName, staggerDelay = 0.04 }: {
       viewport={{ once: true, margin: '-60px' }}
       aria-label={text}
     >
-      {chars.map((char, i) => (
-        <motion.span
-          key={i}
-          className={charClassName}
-          style={{ display: 'inline-block', whiteSpace: char === ' ' ? 'pre' : 'normal' }}
-          variants={{
-            hidden: { opacity: 0, y: 18, filter: 'blur(6px)', rotateX: -25 },
-            visible: {
-              opacity: 1,
-              y: 0,
-              filter: 'blur(0px)',
-              rotateX: 0,
-              transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] }
-            }
-          }}
-        >
-          {char}
-        </motion.span>
+      {words.map((word, wordIdx) => (
+        <span key={wordIdx} style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
+          {word.split('').map((char, charIdx) => {
+            const globalCharIdx = words.slice(0, wordIdx).reduce((acc, w) => acc + w.length, 0) + charIdx;
+            return (
+              <motion.span
+                key={globalCharIdx}
+                className={charClassName}
+                style={{ display: 'inline-block' }}
+                variants={{
+                  hidden: { opacity: 0, y: 18, filter: 'blur(6px)', rotateX: -25 },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    filter: 'blur(0px)',
+                    rotateX: 0,
+                    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] }
+                  }
+                }}
+              >
+                {char}
+              </motion.span>
+            );
+          })}
+          {wordIdx < words.length - 1 && (
+            <span style={{ display: 'inline-block', whiteSpace: 'pre' }}> </span>
+          )}
+        </span>
       ))}
     </motion.span>
   );
@@ -1493,7 +1503,7 @@ const RSVPModal = ({ isOpen, onClose, guestName }: { isOpen: boolean, onClose: (
                     {familyMembers.length > 1 ? 'Confirma por tu grupo familiar' : 'Tu presencia es nuestro mejor regalo'}
                   </p>
                   <p className="text-brand-gold text-[10px] tracking-[0.15em] uppercase font-bold">
-                    Por favor confirma antes del 15 de Julio
+                    Por favor confirma antes del 25 de Julio
                   </p>
                 </div>
 
@@ -2988,6 +2998,8 @@ export default function App() {
        resolvedGuestName.toLowerCase().includes('&'))
     : false;
 
+  const isPastConfirmationDeadline = new Date().getTime() > new Date('2026-07-25T23:59:59').getTime();
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const guestParam = urlParams.get('to') || urlParams.get('to ');
@@ -3566,8 +3578,8 @@ export default function App() {
                 className="text-[12px] text-brand-charcoal/90 font-light max-w-[190px] mx-auto italic leading-relaxed"
               >
                 {isPluralInvitation
-                  ? 'Estamos listos para decir "Sí" y queremos que sean parte de este nuevo comienzo. Por favor confirmen antes del 15 de Julio.'
-                  : 'Estamos listos para decir "Sí" y queremos que seas parte de este nuevo comienzo. Por favor confirma antes del 15 de Julio.'
+                  ? 'Estamos listos para decir "Sí" y queremos que sean parte de este nuevo comienzo. Por favor confirmen antes del 25 de Julio.'
+                  : 'Estamos listos para decir "Sí" y queremos que seas parte de este nuevo comienzo. Por favor confirma antes del 25 de Julio.'
                 }
               </motion.p>
 
@@ -3578,10 +3590,15 @@ export default function App() {
                 className="pt-2"
               >
                 <button
-                  onClick={() => setIsRSVPOpen(true)}
-                  className="px-6 py-3.5 bg-brand-sage text-white text-[8px] tracking-[0.25em] font-black rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all uppercase border border-brand-gold/20 hover:shadow-brand-sage/20 cursor-pointer"
+                  disabled={isPastConfirmationDeadline}
+                  onClick={() => !isPastConfirmationDeadline && setIsRSVPOpen(true)}
+                  className={`px-6 py-3.5 text-white text-[8px] tracking-[0.25em] font-black rounded-full shadow-lg transition-all uppercase border ${
+                    isPastConfirmationDeadline
+                      ? 'bg-gray-400 border-gray-400 opacity-60 cursor-not-allowed shadow-none'
+                      : 'bg-brand-sage hover:scale-105 active:scale-95 border-brand-gold/20 hover:shadow-brand-sage/20 cursor-pointer'
+                  }`}
                 >
-                  Confirmar asistencia
+                  {isPastConfirmationDeadline ? 'Plazo vencido' : 'Confirmar asistencia'}
                 </button>
               </motion.div>
             </div>
@@ -3592,25 +3609,6 @@ export default function App() {
         </section>
       </main>
 
-      {/* Modern Footer Nav for Mobile */}
-      <motion.footer
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        transition={{ delay: 1 }}
-        className="fixed bottom-6 left-6 right-6 z-50 md:hidden"
-      >
-        <div className="bg-brand-cream/80 backdrop-blur-2xl border border-white/50 rounded-full px-8 py-4 shadow-2xl flex justify-between items-center">
-          {[
-            { icon: Heart, href: '#history' },
-            { icon: MapPin, href: '#thevenue' },
-            { icon: Mail, href: '#rsvp' }
-          ].map((item) => (
-            <a key={item.href} href={item.href} className="text-brand-sage/60 hover:text-brand-sage transition-colors p-2">
-              <item.icon size={22} strokeWidth={1.5} />
-            </a>
-          ))}
-        </div>
-      </motion.footer>
       </div>
     </div>
   );
