@@ -1840,7 +1840,7 @@ const Hero = () => {
   return (
     <section
       id="welcome"
-      className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 shadow-[0_8px_30px_rgba(0,0,0,0.06)] flex flex-col justify-between items-center text-center px-6 pt-12 pb-10 overflow-hidden mx-auto bg-transparent mt-20 sm:mt-28"
+      className="relative w-full max-w-[340px] aspect-[5/7] rounded-[2rem] border border-brand-gold/25 shadow-[0_8px_30px_rgba(0,0,0,0.06)] flex flex-col justify-start items-center text-center px-6 pt-12 pb-4 overflow-hidden mx-auto bg-transparent mt-20 sm:mt-28"
       style={{
         backgroundImage: 'url("/images/card_hero_illustration.png")',
         backgroundSize: 'cover',
@@ -1875,20 +1875,20 @@ const Hero = () => {
         <div className="w-16 h-[1px] bg-brand-gold/40 mx-auto" />
       </motion.div>
 
-      {/* Middle Empty Spacer to prevent text overlap with the central couple illustration */}
-      <div className="h-32" />
-
-      {/* Bottom Text Footer */}
+      {/* Bottom Text Footer - Pushed to the bottom with mt-auto */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.2, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 space-y-2 mb-4"
+        className="relative z-10 space-y-1.5 mb-2 mt-auto"
       >
         <p className="text-brand-sage text-sm tracking-[0.25em] font-black uppercase">
           Agosto 28 . 2026
         </p>
-        <p className="text-brand-charcoal/45 text-[9px] tracking-[0.2em] uppercase font-black">
+        <p className="text-brand-sage text-[10px] tracking-[0.2em] font-bold uppercase opacity-85">
+          2:30 PM
+        </p>
+        <p className="text-brand-charcoal/75 text-[9px] tracking-[0.2em] uppercase font-black">
           Subachoque, Colombia
         </p>
       </motion.div>
