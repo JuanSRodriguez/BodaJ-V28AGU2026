@@ -24,7 +24,7 @@ export const familyGroups: string[][] = [
   ["Eliud Ceballos"],
   ["Cristian Rodríguez", "Paula Betancourt", "Antonella Rodríguez Betancourt"],
   ["Marlene Ríos", "Edith Ríos"],
-  ["Carlos Carrero (Charlie)"],
+  ["Carlos Carreño (Charlie)"],
   ["Stella Rodríguez"],
   ["Nashly Rodríguez"],
   ["Katerin Saavedra"],
@@ -48,7 +48,7 @@ export const familyGroups: string[][] = [
 
   // Amigos
   ["Juan Álvarez", "Yuly Gómez"],
-  ["Sare Katib", "Jinneth Castro"],
+  ["Sare Katib", "Jineth Castro"],
   ["Yubal Acosta"],
   ["Camila Pinilla"],
   ["Natalia Montenegro"],

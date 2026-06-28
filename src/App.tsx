@@ -1427,6 +1427,7 @@ const RSVPModal = ({ isOpen, onClose, guestName }: { isOpen: boolean, onClose: (
           };
           // Usar GET con query params para evitar problemas de CORS con Google Apps Script
           const params = new URLSearchParams({
+            type: 'rsvp',
             name: payload.name,
             attending: String(payload.attending),
             familyGroup: payload.familyGroup,
@@ -3238,9 +3239,14 @@ export default function App() {
                   <div className="w-12 h-[1px] bg-brand-gold/50 mx-auto" />
 
                   {/* Event Description */}
-                  <p className="text-[9px] tracking-[0.18em] uppercase font-black text-brand-sage leading-relaxed">
-                    Ceremonia, Recepción y Fiesta
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-[9px] tracking-[0.18em] uppercase font-black text-brand-sage leading-relaxed">
+                      Ceremonia, Recepción y Fiesta
+                    </p>
+                    <p className="text-[10px] tracking-[0.2em] font-semibold text-brand-gold uppercase">
+                      Hora: 2:30 PM
+                    </p>
+                  </div>
 
                   {/* Maps Button */}
                   <div className="w-full pt-1 flex justify-center">
