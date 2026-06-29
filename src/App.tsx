@@ -157,20 +157,82 @@ const getEquivalents = (word: string): string[] => {
   return list;
 };
 
-const getFamilyDisplayName = (guestName: string): string => {
-  if (!guestName) return '';
-  const iNorm = globalNormalizeName(guestName);
-  
-  // Find matching family group
-  const matchedGroup = familyGroups.find(group => {
-    return group.some(member => {
-      let gNorm = globalNormalizeName(member);
-      gNorm = gNorm.replace(/\s*\(.*?\)\s*/g, '').replace(/^(tia|tio|abuelita)\s+/g, '').trim();
-      const inputWords = iNorm.split(' ');
-      const guestWords = gNorm.split(' ');
-      return guestWords.every(gw => inputWords.some(iw => iw === gw || iw.includes(gw) || gw.includes(iw)));
+const isMatch = (guest: string, input: string): boolean => {
+  const iNorm = globalNormalizeName(input);
+  if (!iNorm) return false;
+
+  // Replace parentheses with spaces so nickname words are matched
+  const gNorm = globalNormalizeName(guest).replace(/[()]/g, ' ');
+
+  const inputWords = iNorm.split(/\s+/).filter(Boolean);
+  const guestWords = gNorm.split(/\s+/).filter(Boolean);
+
+  if (inputWords.length === 0) return false;
+
+  return inputWords.every(iw => {
+    const iwEquivalents = getEquivalents(iw);
+    return guestWords.some(gw => {
+      const gwEquivalents = getEquivalents(gw);
+      return iwEquivalents.some(ie => {
+        return gwEquivalents.some(ge => ge === ie || ge.startsWith(ie) || ie.startsWith(ge));
+      });
     });
   });
+};
+
+const findFamilyGroup = (guestName: string): string[] | undefined => {
+  if (!guestName) return undefined;
+  
+  const normalizedInput = globalNormalizeName(guestName);
+  
+  // 1. Try exact match (normalized) first
+  const foundGroup = familyGroups.find(group => 
+    group.some(member => globalNormalizeName(member) === normalizedInput)
+  );
+  
+  if (foundGroup) return foundGroup;
+
+  // 2. Try match using isMatch logic
+  const matches = familyGroups.filter(group => 
+    group.some(member => isMatch(member, guestName))
+  );
+
+  if (matches.length > 0) {
+    if (matches.length === 1) return matches[0];
+    
+    // Find group with highest word overlap
+    let bestGroup = matches[0];
+    let maxOverlap = -1;
+    
+    matches.forEach(group => {
+      group.forEach(member => {
+        const mNorm = globalNormalizeName(member);
+        const inputWords = normalizedInput.split(/\s+/).filter(Boolean);
+        const memberWords = mNorm.split(/\s+/).filter(Boolean);
+        const commonWords = inputWords.filter(iw => 
+          memberWords.some(mw => {
+            const iwEquiv = getEquivalents(iw);
+            const mwEquiv = getEquivalents(mw);
+            return iwEquiv.some(ie => mwEquiv.some(ge => ge === ie));
+          })
+        );
+        if (commonWords.length > maxOverlap) {
+          maxOverlap = commonWords.length;
+          bestGroup = group;
+        }
+      });
+    });
+    
+    return bestGroup;
+  }
+
+  return undefined;
+};
+
+const getFamilyDisplayName = (guestName: string): string => {
+  if (!guestName) return '';
+  
+  const matchedGroup = findFamilyGroup(guestName);
 
   if (matchedGroup) {
     // Clean names (remove nicknames in parenthesis)
@@ -1325,16 +1387,7 @@ const RSVPModal = ({ isOpen, onClose, guestName }: { isOpen: boolean, onClose: (
     if (isOpen && guestName) {
       setName(guestName);
 
-      const iNorm = normalizeName(guestName);
-      const matchedGroup = familyGroups.find(group => {
-        return group.some(member => {
-          let gNorm = normalizeName(member);
-          gNorm = gNorm.replace(/\s*\(.*?\)\s*/g, '').replace(/^(tia|tio|abuelita)\s+/g, '').trim();
-          const inputWords = iNorm.split(' ');
-          const guestWords = gNorm.split(' ');
-          return guestWords.every(gw => inputWords.some(iw => iw === gw || iw.includes(gw) || gw.includes(iw)));
-        });
-      });
+      const matchedGroup = findFamilyGroup(guestName);
 
       if (matchedGroup) {
         setFamilyMembers(matchedGroup);
@@ -1917,32 +1970,6 @@ const InvitationEnvelope = ({ onOpen, onStartMusic, guestName, onNameSubmit }: {
     setMatchedGuests([]);
   };
 
-  const normalizeName = (str: string) => {
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  };
-
-  const isMatch = (guest: string, input: string) => {
-    const iNorm = normalizeName(input);
-    if (!iNorm) return false;
-
-    // Replace parentheses with spaces so nickname words are matched
-    const gNorm = normalizeName(guest).replace(/[()]/g, ' ');
-
-    const inputWords = iNorm.split(/\s+/).filter(Boolean);
-    const guestWords = gNorm.split(/\s+/).filter(Boolean);
-
-    if (inputWords.length === 0) return false;
-
-    return inputWords.every(iw => {
-      const iwEquivalents = getEquivalents(iw);
-      return guestWords.some(gw => {
-        const gwEquivalents = getEquivalents(gw);
-        return iwEquivalents.some(ie => {
-          return gwEquivalents.some(ge => ge === ie || ge.startsWith(ie) || ie.startsWith(ge));
-        });
-      });
-    });
-  };
 
   const proceedWithGuest = (selectedGuest: string) => {
     setValidationStatus('verifying');
