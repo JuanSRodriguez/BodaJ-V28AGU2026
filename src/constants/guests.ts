@@ -16,6 +16,7 @@ export const familyGroups: string[][] = [
   ["Ximena Bolívar", "Santiago Arenas"],
   ["Jenny Gómez", "Mario Jiménez", "Isabella Jiménez Gómez"],
   ["Adriana García", "George Albano"],
+  ["Javier Beltran", "Zoad Bendeck", "Samuel Beltran Bendeck"],
 
   // Familia Sebas
   ["Leslie Cuéllar", "Gustavo Rodríguez"],
@@ -54,7 +55,12 @@ export const familyGroups: string[][] = [
   ["Natalia Montenegro"],
   ["Yeremy Téllez", "Kevin Mayoral"],
   ["Joe Arenas"],
-  ["Meylin Herrera", "Leonardo Gualdron"]
+  ["Meylin Herrera", "Leonardo Gualdron"],
+
+  // Nuevos grupos
+  ["Miller Peña", "Kathe Martinez", "Abbie Peña Martinez"],
+  ["Matthew Botros"],
+  ["Karen Osmotherly", "Taylor Osmotherly", "Luka Osmotherly"]
 ];
 
 export const allGuests: string[] = familyGroups.flat();
